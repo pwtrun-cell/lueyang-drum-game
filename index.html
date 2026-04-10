@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>羌韵鼓魂 · 节奏大师 - 略阳文化游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a0f2e 0%, #2d1b4e 50%, #1a0f2e 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            color: #fff;
+        }
+
+        .game-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 标题区域 */
+        .header {
+            text-align: center;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            margin-bottom: 15px;
+            border: 2px solid #d4a853;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            background: linear-gradient(45deg, #d4a853, #f4d03f, #d4a853);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(212, 168, 83, 0.5);
+            margin-bottom: 5px;
+        }
+
+        .header .subtitle {
+            font-size: 14px;
+            color: #c9b896;
+        }
+
+        .score-board {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .score-item {
+            background: rgba(212, 168, 83, 0.2);
+            padding: 8px 20px;
+            border-radius: 20px;
+            border: 1px solid #d4a853;
+        }
+
+        .score-item span {
+            color: #d4a853;
+            font-weight: bold;
+        }
+
+        /* 游戏区域 */
+        .game-area {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 15px;
+            border: 2px solid #d4a853;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+        }
+
+        /* 轨道 */
+        .tracks {
+            display: flex;
+            flex: 1;
+            position: relative;
+        }
+
+        .track {
+            flex: 1;
+            border-right: 1px solid rgba(212, 168, 83, 0.2);
+            position: relative;
+            background: linear-gradient(180deg, transparent 0%, rgba(212, 168, 83, 0.05) 100%);
+        }
+
+        .track:last-child {
+            border-right: none;
+        }
+
+        .track::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(180deg, transparent, rgba(212, 168, 83, 0.3), transparent);
+        }
+
+        /* 判定线 */
+        .judgment-line {
+            position: absolute;
+            bottom: 100px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, #d4a853, #f4d03f, #d4a853, transparent);
+            box-shadow: 0 0 20px rgba(212, 168, 83, 0.8);
+            z-index: 10;
+        }
+
+        /* 按键提示 */
+        .key-hint {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #2d1b4e, #1a0f2e);
+            border: 3px solid #d4a853;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #d4a853;
+            box-shadow: 0 0 20px rgba(212, 168, 83, 0.4);
+            transition: all 0.1s;
+        }
+
+        .key-hint.active {
+            background: linear-gradient(145deg, #d4a853, #f4d03f);
+            color: #1a0f2e;
+            transform: translateX(-50%) scale(0.9);
+            box-shadow: 0 0 40px rgba(212, 168, 83, 0.8);
+        }
+
+        /* 鼓点 */
+        .note {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #f4d03f, #d4a853, #8b6914);
+            box-shadow: 0 0 20px rgba(212, 168, 83, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.3);
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .note::before {
+            content: '🥁';
+            font-size: 24px;
+        }
+
+        /* 判定文字 */
+        .judgment-text {
+            position: absolute;
+            left: 50%;
+            bottom: 150px;
+            transform: translateX(-50%);
+            font-size: 36px;
+            font-weight: bold;
+            text-shadow: 0 0 20px currentColor;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        .judgment-text.perfect {
+            color: #f4d03f;
+        }
+
+        .judgment-text.good {
+            color: #5dade2;
+        }
+
+        .judgment-text.miss {
+            color: #e74c3c;
+        }
+
+        /* 开始/结束界面 */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .overlay.hidden {
+            display: none;
+        }
+
+        .overlay h2 {
+            font-size: 42px;
+            background: linear-gradient(45deg, #d4a853, #f4d03f, #d4a853);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .overlay p {
+            color: #c9b896;
+            margin-bottom: 10px;
+            text-align: center;
+            max-width: 500px;
+            line-height: 1.6;
+        }
+
+        .btn {
+            padding: 15px 50px;
+            font-size: 20px;
+            background: linear-gradient(145deg, #d4a853, #b8941d);
+            border: none;
+            border-radius: 30px;
+            color: #1a0f2e;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s;
+            box-shadow: 0 0 30px rgba(212, 168, 83, 0.4);
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 50px rgba(212, 168, 83, 0.6);
+        }
+
+        /* 文化介绍 */
+        .culture-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(212, 168, 83, 0.1);
+            border-radius: 10px;
+            border-left: 4px solid #d4a853;
+        }
+
+        .culture-info h3 {
+            color: #d4a853;
+            margin-bottom: 8px;
+        }
+
+        .culture-info p {
+            color: #c9b896;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* 连击显示 */
+        .combo {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            text-align: center;
+            z-index: 20;
+        }
+
+        .combo-number {
+            font-size: 48px;
+            font-weight: bold;
+            color: #f4d03f;
+            text-shadow: 0 0 20px rgba(244, 208, 63, 0.6);
+        }
+
+        .combo-text {
+            font-size: 14px;
+            color: #d4a853;
+        }
+
+        /* 动画 */
+        @keyframes pulse {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.1); }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(-5px); }
+        }
+
+        .note {
+            animation: float 0.5s ease-in-out infinite;
+        }
+
+        /* 响应式 */
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 20px;
+            }
+            .key-hint {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+            .note {
+                width: 40px;
+                height: 40px;
+            }
+            .note::before {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <!-- 标题区域 -->
+        <div class="header">
+            <h1>🥁 羌韵鼓魂 · 节奏大师</h1>
+            <div class="subtitle">体验略阳国家级非遗——羊皮鼓舞的独特魅力</div>
+            <div class="score-board">
+                <div class="score-item">得分: <span id="score">0</span></div>
+                <div class="score-item">准确率: <span id="accuracy">100%</span></div>
+                <div class="score-item">最高连击: <span id="maxCombo">0</span></div>
+            </div>
+        </div>
+
+        <!-- 游戏区域 -->
+        <div class="game-area">
+            <div class="combo">
+                <div class="combo-number" id="combo">0</div>
+                <div class="combo-text">连击</div>
+            </div>
+            <div class="tracks" id="tracks">
+                <div class="track" data-key="d">
+                    <div class="judgment-line"></div>
+                    <div class="key-hint" data-key="d">D</div>
+                </div>
+                <div class="track" data-key="f">
+                    <div class="judgment-line"></div>
+                    <div class="key-hint" data-key="f">F</div>
+                </div>
+                <div class="track" data-key="j">
+                    <div class="judgment-line"></div>
+                    <div class="key-hint" data-key="j">J</div>
+                </div>
+                <div class="track" data-key="k">
+                    <div class="judgment-line"></div>
+                    <div class="key-hint" data-key="k">K</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 文化介绍 -->
+        <div class="culture-info">
+            <h3>🏔️ 关于略阳羊皮鼓舞</h3>
+            <p>羊皮鼓舞是流传于陕西略阳白雀寺、荷叶坝等地的传统舞蹈，是国家级非物质文化遗产。源于古代氐羌族的祭祀活动，舞者手持羊皮鼓，边敲边舞，鼓声雄浑，舞姿矫健，展现了羌族人民豪迈奔放的性格。</p>
+        </div>
+    </div>
+
+    <!-- 开始界面 -->
+    <div class="overlay" id="startScreen">
+        <h2>🥁 羌韵鼓魂</h2>
+        <p>跟随节奏，敲击鼓点</p>
+        <p>使用键盘 <strong>D F J K</strong> 或点击屏幕对应位置</p>
+        <p>体验略阳国家级非物质文化遗产——羊皮鼓舞的魅力</p>
+        <button class="btn" onclick="startGame()">开始游戏</button>
+    </div>
+
+    <!-- 结束界面 -->
+    <div class="overlay hidden" id="endScreen">
+        <h2>游戏结束</h2>
+        <p>最终得分: <strong id="finalScore">0</strong></p>
+        <p>最高连击: <strong id="finalCombo">0</strong></p>
+        <p>准确率: <strong id="finalAccuracy">0%</strong></p>
+        <p id="rankText" style="font-size: 18px; color: #d4a853; margin-top: 10px;"></p>
+        <button class="btn" onclick="restartGame()">再来一局</button>
+    </div>
+
+    <script>
+        // 游戏配置
+        const CONFIG = {
+            noteSpeed: 3, // 鼓点下落速度
+            noteInterval: 800, // 生成间隔(ms)
+            gameDuration: 60000, // 游戏时长(ms)
+            judgmentLineY: 100, // 判定线位置(从底部算)
+            perfectRange: 30, // 完美判定范围
+            goodRange: 60 // 良好判定范围
+        };
+
+        // 游戏状态
+        let gameState = {
+            isPlaying: false,
+            score: 0,
+            combo: 0,
+            maxCombo: 0,
+            totalNotes: 0,
+            hitNotes: 0,
+            perfectHits: 0,
+            goodHits: 0,
+            notes: [],
+            startTime: 0
+        };
+
+        // DOM 元素
+        const tracks = document.querySelectorAll('.track');
+        const scoreEl = document.getElementById('score');
+        const comboEl = document.getElementById('combo');
+        const maxComboEl = document.getElementById('maxCombo');
+        const accuracyEl = document.getElementById('accuracy');
+        const startScreen = document.getElementById('startScreen');
+        const endScreen = document.getElementById('endScreen');
+
+        // 音效模拟（使用 Web Audio API）
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playDrumSound() {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 80;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.8, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.1);
+        }
+
+        function playHitSound(type) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            if (type === 'perfect') {
+                oscillator.frequency.value = 880;
+            } else if (type === 'good') {
+                oscillator.frequency.value = 660;
+            }
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.1);
+        }
+
+        // 创建鼓点
+        function createNote() {
+            const trackIndex = Math.floor(Math.random() * 4);
+            const track = tracks[trackIndex];
+            const key = track.dataset.key;
+            
+            const note = document.createElement('div');
+            note.className = 'note';
+            note.dataset.key = key;
+            note.style.top = '-60px';
+            track.appendChild(note);
+            
+            gameState.notes.push({
+                element: note,
+                key: key,
+                y: -60,
+                hit: false
+            });
+            
+            gameState.totalNotes++;
+        }
+
+        // 更新游戏
+        function updateGame() {
+            if (!gameState.isPlaying) return;
+            
+            const gameArea = document.querySelector('.game-area');
+            const gameHeight = gameArea.clientHeight;
+            const judgmentY = gameHeight - CONFIG.judgmentLineY;
+            
+            // 更新鼓点位置
+            gameState.notes = gameState.notes.filter(note => {
+                if (note.hit) return false;
+                
+                note.y += CONFIG.noteSpeed;
+                note.element.style.top = note.y + 'px';
+                
+                // 检查是否错过
+                if (note.y > gameHeight) {
+                    note.element.remove();
+                    showJudgment('miss');
+                    resetCombo();
+                    return false;
+                }
+                
+                return true;
+            });
+            
+            requestAnimationFrame(updateGame);
+        }
+
+        // 判定打击
+        function hitNote(key) {
+            const gameArea = document.querySelector('.game-area');
+            const gameHeight = gameArea.clientHeight;
+            const judgmentY = gameHeight - CONFIG.judgmentLineY;
+            
+            // 找到对应轨道的最近鼓点
+            const note = gameState.notes.find(n => 
+                n.key === key && !n.hit && Math.abs(n.y - judgmentY + 25) < CONFIG.goodRange
+            );
+            
+            if (note) {
+                const distance = Math.abs(note.y - judgmentY + 25);
+                note.hit = true;
+                note.element.remove();
+                gameState.hitNotes++;
+                
+                if (distance < CONFIG.perfectRange) {
+                    showJudgment('perfect');
+                    gameState.score += 100 + gameState.combo * 10;
+                    gameState.perfectHits++;
+                    addCombo();
+                    playHitSound('perfect');
+                } else {
+                    showJudgment('good');
+                    gameState.score += 50 + gameState.combo * 5;
+                    gameState.goodHits++;
+                    addCombo();
+                    playHitSound('good');
+                }
+                
+                updateUI();
+            } else {
+                // 空打
+                playDrumSound();
+            }
+            
+            // 按键动画
+            const keyHint = document.querySelector(`.key-hint[data-key="${key}"]`);
+            if (keyHint) {
+                keyHint.classList.add('active');
+                setTimeout(() => keyHint.classList.remove('active'), 100);
+            }
+        }
+
+        // 显示判定文字
+        function showJudgment(type) {
+            const track = tracks[1];
+            const text = document.createElement('div');
+            text.className = `judgment-text ${type}`;
+            text.textContent = type === 'perfect' ? '完美!' : type === 'good' ? '不错!' : '错过';
+            track.appendChild(text);
+            
+            // 动画
+            text.animate([
+                { opacity: 0, transform: 'translateX(-50%) scale(0.5)' },
+                { opacity: 1, transform: 'translateX(-50%) scale(1.2)' },
+                { opacity: 0, transform: 'translateX(-50%) scale(1) translateY(-30px)' }
+            ], {
+                duration: 600,
+                easing: 'ease-out'
+            });
+            
+            setTimeout(() => text.remove(), 600);
+        }
+
+        // 增加连击
+        function addCombo() {
+            gameState.combo++;
+            if (gameState.combo > gameState.maxCombo) {
+                gameState.maxCombo = gameState.combo;
+            }
+            comboEl.textContent = gameState.combo;
+            comboEl.parentElement.style.transform = 'scale(1.2)';
+            setTimeout(() => {
+                comboEl.parentElement.style.transform = 'scale(1)';
+            }, 100);
+        }
+
+        // 重置连击
+        function resetCombo() {
+            gameState.combo = 0;
+            comboEl.textContent = '0';
+        }
+
+        // 更新UI
+        function updateUI() {
+            scoreEl.textContent = gameState.score;
+            maxComboEl.textContent = gameState.maxCombo;
+            
+            const accuracy = gameState.totalNotes > 0 
+                ? Math.round((gameState.hitNotes / gameState.totalNotes) * 100) 
+                : 100;
+            accuracyEl.textContent = accuracy + '%';
+        }
+
+        // 开始游戏
+        function startGame() {
+            startScreen.classList.add('hidden');
+            gameState.isPlaying = true;
+            gameState.score = 0;
+            gameState.combo = 0;
+            gameState.maxCombo = 0;
+            gameState.totalNotes = 0;
+            gameState.hitNotes = 0;
+            gameState.perfectHits = 0;
+            gameState.goodHits = 0;
+            gameState.notes = [];
+            
+            updateUI();
+            
+            // 启动游戏循环
+            updateGame();
+            
+            // 生成鼓点
+            const noteInterval = setInterval(() => {
+                if (!gameState.isPlaying) {
+                    clearInterval(noteInterval);
+                    return;
+                }
+                createNote();
+            }, CONFIG.noteInterval);
+            
+            // 游戏结束
+            setTimeout(() => {
+                endGame();
+            }, CONFIG.gameDuration);
+        }
+
+        // 结束游戏
+        function endGame() {
+            gameState.isPlaying = false;
+            
+            document.getElementById('finalScore').textContent = gameState.score;
+            document.getElementById('finalCombo').textContent = gameState.maxCombo;
+            
+            const accuracy = gameState.totalNotes > 0 
+                ? Math.round((gameState.hitNotes / gameState.totalNotes) * 100) 
+                : 0;
+            document.getElementById('finalAccuracy').textContent = accuracy + '%';
+            
+            // 评级
+            let rank = '';
+            if (accuracy >= 95 && gameState.maxCombo >= 50) {
+                rank = '🏆 羌族鼓神！你是真正的羊皮鼓舞传人！';
+            } else if (accuracy >= 85) {
+                rank = '🥇 优秀鼓手！节奏感非常棒！';
+            } else if (accuracy >= 70) {
+                rank = '🥈 不错！继续练习会更好！';
+            } else {
+                rank = '🥉 初学者，多多练习哦！';
+            }
+            document.getElementById('rankText').textContent = rank;
+            
+            endScreen.classList.remove('hidden');
+        }
+
+        // 重新开始
+        function restartGame() {
+            endScreen.classList.add('hidden');
+            // 清理剩余鼓点
+            document.querySelectorAll('.note').forEach(n => n.remove());
+            startGame();
+        }
+
+        // 键盘事件
+        document.addEventListener('keydown', (e) => {
+            if (!gameState.isPlaying) return;
+            
+            const key = e.key.toLowerCase();
+            if (['d', 'f', 'j', 'k'].includes(key)) {
+                e.preventDefault();
+                hitNote(key);
+            }
+        });
+
+        // 触摸/点击事件
+        tracks.forEach(track => {
+            track.addEventListener('click', () => {
+                if (!gameState.isPlaying) return;
+                hitNote(track.dataset.key);
+            });
+            
+            track.addEventListener('touchstart', (e) => {
+                if (!gameState.isPlaying) return;
+                e.preventDefault();
+                hitNote(track.dataset.key);
+            });
+        });
+
+        // 背景音乐节奏（简单的节拍器效果）
+        function playBeat() {
+            if (!gameState.isPlaying) return;
+            playDrumSound();
+            setTimeout(playBeat, 800);
+        }
+
+        // 监听游戏开始
+        const originalStartGame = startGame;
+        startGame = function() {
+            originalStartGame();
+            playBeat();
+        };
+    </script>
+</body>
+</html>
